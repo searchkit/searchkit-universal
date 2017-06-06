@@ -30,7 +30,7 @@ export default class MainPage extends React.Component {
 
   static async getInitialProps(props) {
     const { pathname, query } = props
-    console.log(pathname)
+
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         resolve({})
