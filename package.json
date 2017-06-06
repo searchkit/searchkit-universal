@@ -1,0 +1,19 @@
+{
+  "name": "searchkit-universal",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next",
+    "build": "next build",
+    "start": "next start"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "next": "^3.0.0-beta9",
+    "react": "^15.5.4",
+    "react-dom": "^15.5.4",
+    "searchkit": "^2.1.0"
+  }
+}
