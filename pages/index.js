@@ -9,6 +9,7 @@ import { SearchkitManager,SearchkitProvider,
 
 var ReactDOMServer = require('react-dom/server')
 import React from 'react'
+import Head from 'next/head'
 
 var searchkit
 
@@ -145,7 +146,14 @@ export default class MainPage extends React.Component {
   render() {
     // console.log(this.searchkit)
     return (
-      searchCode(this.searchkit)
+      <div>
+        <Head>
+          <title>Searchkit</title>
+          <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/searchkit/0.10.0/theme.css" />
+          <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+        </Head>
+        {searchCode(this.searchkit)}
+      </div>
     )
   }
 }
