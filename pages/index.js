@@ -4,23 +4,57 @@ import { SearchkitManager,SearchkitProvider,
   ResetFilters, RangeFilter, NumericRefinementListFilter,
   ViewSwitcherHits, ViewSwitcherToggle, DynamicRangeFilter,
   InputFilter, GroupedSelectedFilters, AccessorManager,
-  Layout, TopBar, LayoutBody, LayoutResults, Hits,
+  Layout, TopBar, LayoutBody, LayoutResults, Hits, Utils,
   ActionBar, ActionBarRow, SideBar } from 'searchkit'
 
 var ReactDOMServer = require('react-dom/server')
 import React from 'react'
 import Head from 'next/head'
 
+Utils.guid = (prefix)=> {
+  return prefix
+}
 var searchkit
 
-const MovieHitsGridItem = (props) => {
+
+const MovieHitsGridItem = (props)=> {
+  const {bemBlocks, result} = props
+  let url = "http://www.imdb.com/title/" + result._source.imdbId
+  const source = Object.assign({}, result._source, result.highlight)
   return (
-    <div>hi</div>
+    <div className={bemBlocks.item().mix(bemBlocks.container("item"))} data-qa="hit">
+      <a href={url} target="_blank">
+        <img data-qa="poster" className={bemBlocks.item("poster")} src={result._source.poster} width="170" height="240"/>
+        <div data-qa="title" className={bemBlocks.item("title")} dangerouslySetInnerHTML={{__html:source.title}}>
+        </div>
+      </a>
+    </div>
+  )
+}
+
+const MovieHitsListItem = (props)=> {
+  const {bemBlocks, result} = props
+  let url = "http://www.imdb.com/title/" + result._source.imdbId
+  const source:any = _.extend({}, result._source, result.highlight)
+  return (
+    <div className={bemBlocks.item().mix(bemBlocks.container("item"))} data-qa="hit">
+      <div className={bemBlocks.item("poster")}>
+        <img data-qa="poster" src={result._source.poster}/>
+      </div>
+      <div className={bemBlocks.item("details")}>
+        <a href={url} target="_blank"><h2 className={bemBlocks.item("title")} dangerouslySetInnerHTML={{__html:source.title}}></h2></a>
+        <h3 className={bemBlocks.item("subtitle")}>Released in {source.year}, rated {source.imdbRating}/10</h3>
+        <div className={bemBlocks.item("text")} dangerouslySetInnerHTML={{__html:source.plot}}></div>
+      </div>
+    </div>
   )
 }
 
 const host = "http://demo.searchkit.co/api/movies"
 
+ViewSwitcherToggle.prototype.componentDidMount = function(){
+  this.forceUpdate()
+}
 
 let searchCode =  (searchkit)=> {
   return (
@@ -69,10 +103,15 @@ let searchCode =  (searchkit)=> {
             </ActionBarRow>
 
           </ActionBar>
-          <Hits scrollTo={false}
-            hitsPerPage={12}
-            highlightFields={["title","plot"]}
-            itemComponent={MovieHitsGridItem}/>
+          <ViewSwitcherHits
+              hitsPerPage={12} highlightFields={["title","plot"]}
+              sourceFilter={["plot", "title", "poster", "imdbId", "imdbRating", "year"]}
+              hitComponents = {[
+                {key:"grid", title:"Grid", itemComponent:MovieHitsGridItem, defaultOption:true},
+                {key:"list", title:"List", itemComponent:MovieHitsListItem}
+              ]}
+              scrollTo={false}
+          />
           <NoHits suggestionsField={"title"}/>
           <Pagination showNumbers={true}/>
         </LayoutResults>
@@ -86,16 +125,15 @@ export default class MainPage extends React.Component {
 
   constructor(props) {
     super(props)
-    console.log("constructor")
     if(searchkit){
       this.searchkit = searchkit
-      searchkit.accessors = new AccessorManager()
+      searchkit.isInitialLoading = function(){
+        return false
+      }
       searchkit.accessors.add = function(accessor) {
         accessor.results = props.results
-        return AccessorManager.prototype.add.call(
-          searchkit.accessors, accessor)
+        return this.statefulAccessors[accessor.key] || accessor
       }
-      console.log('hits', searchkit.getHits())
 
     } else {
       this.searchkit = new SearchkitManager(host, {
@@ -109,7 +147,12 @@ export default class MainPage extends React.Component {
       if(props.results){
         this.searchkit.results = props.results
         this.searchkit.initialLoading = false
-        this.searchkit.accessors.setResults(props.results)
+        let self = this
+        this.searchkit.accessors.add = function(accessor) {
+          accessor.results = props.results
+          return AccessorManager.prototype.add.call(
+            self.searchkit.accessors, accessor)
+        }
       }
       if(props.state){
         this.searchkit.state = props.state
@@ -119,23 +162,19 @@ export default class MainPage extends React.Component {
 
     // console.log(this.searchkit)
   }
-  componentWillMount(){
-    // console.log("HI")
-    // setTimeout(()=> {
-    //   this.searchkit.onResponseChange()
-    // }, 2000)
-  }
 
   static async getInitialProps(props) {
     const { pathname, query } = props
     searchkit = new SearchkitManager(host, {
       useHistory: false,
-      getLocation: () => '/'
+      searchOnLoad:false,
+      getLocation: () => {
+        search:""
+      }
     })
+    searchkit.setupListeners = function(){}
     ReactDOMServer.renderToString(searchCode(searchkit))
     searchkit.performSearch()
-    console.log("getInitialProps")
-    // console.log(searchkit)
     return new Promise((resolve, reject) => {
       searchkit.addResultsListener((results)=> {
         resolve({results, state:searchkit.state})
@@ -143,8 +182,7 @@ export default class MainPage extends React.Component {
     })
   }
 
-  render() {
-    // console.log(this.searchkit)
+  render() {    
     return (
       <div>
         <Head>
