@@ -70,7 +70,7 @@ let searchCode =  (searchkit)=> {
           <HierarchicalMenuFilter fields={["type.raw", "genres.raw"]} title="Categories" id="categories"/>
           <DynamicRangeFilter field="metaScore" id="metascore" title="Metascore" rangeFormatter={(count)=> count + "*"}/>
           <RangeFilter min={0} max={10} field="imdbRating" id="imdbRating" title="IMDB Rating" showHistogram={true}/>
-          <InputFilter id="writers" searchThrottleTime={500} title="Writers" placeholder="Search writers" searchOnChange={true} queryFields={["writers"]} />
+          <InputFilter id="writersinput" searchThrottleTime={500} title="Writers" placeholder="Search writers" searchOnChange={true} queryFields={["writers"]} />
           <RefinementListFilter id="actors" title="Actors" field="actors.raw" size={10}/>
           <RefinementListFilter translations={{"facets.view_more":"View more writers"}} id="writers" title="Writers" field="writers.raw" operator="OR" size={10}/>
           <RefinementListFilter id="countries" title="Countries" field="countries.raw" operator="OR" size={10}/>
@@ -153,17 +153,19 @@ export default class MainPage extends React.Component {
     }
 
 
-    console.log(this.searchkit)
+    // console.log(this.searchkit)
   }
 
   static async getInitialProps(props) {
     const { pathname, query, asPath } = props
+    let searchPath = asPath.split('?')[1] || ''
+    console.log(searchPath)
     searchkit = new SearchkitManager(host, {
       useHistory: false,
       searchOnLoad:false,
       getLocation: () => {
         return {
-          search:asPath.split('?')[1] || ''
+          search:searchPath
         }
       }
     })
