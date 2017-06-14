@@ -148,6 +148,10 @@ export default class MainPage extends React.Component {
       // console.log(accessor.constructor)
       return add(accessor)
     })
+    wrap(this.searchkit, "completeRegistration", function(completeRegistration){
+      completeRegistration()
+      this.emitter.trigger()
+    })
   }
 
   static async getInitialProps(props) {
