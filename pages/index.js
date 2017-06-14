@@ -13,12 +13,9 @@ var ReactDOMServer = require('react-dom/server')
 import React from 'react'
 import Head from 'next/head'
 
-
 Utils.guid = (prefix)=> {
   return prefix
 }
-var searchkit
-
 
 const MovieHitsGridItem = (props)=> {
   const {bemBlocks, result} = props
@@ -120,47 +117,44 @@ let searchCode =  (searchkit)=> {
     </SearchkitProvider>
   )
 }
+let wrap  = function(target, methodName, override){
+  let original = target[methodName].bind(target)
+  target[methodName] = function(){
+    let args = Array.prototype.slice.call(arguments).concat(original)
+    return override.apply(target, args)
+  }
+}
+
 export default class MainPage extends React.Component {
 
   constructor(props) {
     super(props)
-    if(searchkit){
-      this.searchkit = searchkit
-      searchkit.isInitialLoading = function(){
-        return false
-      }
-      searchkit.accessors.add = function(accessor) {
-        accessor.results = props.results
-        return this.statefulAccessors[accessor.key] || accessor
-      }
-
-    } else {
-      this.searchkit = new SearchkitManager(host, {
-        useHistory: true,
-        searchOnLoad:false
-      })
-
-      let complete = this.searchkit.completeRegistration.bind(this.searchkit)
-      this.searchkit.completeRegistration = function(){
-        let state = decodeObjString(this.options.getLocation().search.replace(/^\?/, ""))
-        complete()
-        this.state = state
-        this.accessors.setState(state)
-        this.query = this.buildQuery()
-        this.setResults(props.results)
-      }
-      window.searchkit = this.searchkit
-    }
-
-
-    // console.log(this.searchkit)
+    console.log('Searchkit', !!props.searchkit)
+    let isServer = typeof window === 'undefined'
+    this.searchkit = new SearchkitManager(host, {
+      useHistory: !isServer,
+      searchOnLoad:false
+    })
+    wrap(this.searchkit, "setupListeners", function(setupListeners){
+      setupListeners()
+      this.initialLoading = false
+    })
+    this.searchkit.setResults(props.results)
+    let self = this
+    wrap(this.searchkit.accessors, "add", function(accessor, add){
+      accessor.results = props.results
+      accessor.fromQueryObject && accessor.fromQueryObject(props.state)
+      self.searchkit.query = self.searchkit.buildQuery()
+      // console.log(accessor.constructor)
+      return add(accessor)
+    })
   }
 
   static async getInitialProps(props) {
     const { pathname, query, asPath } = props
     let searchPath = asPath.split('?')[1] || ''
-    console.log(searchPath)
-    searchkit = new SearchkitManager(host, {
+    // console.log(searchPath)
+    let searchkit = new SearchkitManager(host, {
       useHistory: false,
       searchOnLoad:false,
       getLocation: () => {
@@ -175,7 +169,7 @@ export default class MainPage extends React.Component {
     searchkit._searchWhenCompleted(searchkit.options.getLocation())
     return new Promise((resolve, reject) => {
       searchkit.addResultsListener((results)=> {
-        resolve({results})
+        resolve({results, state:searchkit.accessors.getState()})
       })
     })
   }
