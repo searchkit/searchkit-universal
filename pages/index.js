@@ -5,7 +5,7 @@ import { SearchkitManager,SearchkitProvider,
   ViewSwitcherHits, ViewSwitcherToggle, DynamicRangeFilter,
   InputFilter, GroupedSelectedFilters, AccessorManager,
   Layout, TopBar, LayoutBody, LayoutResults, Hits, Utils,
-  ActionBar, ActionBarRow, SideBar } from 'searchkit'
+  ActionBar, ActionBarRow, SideBar, ViewSwitcherConfig } from 'searchkit'
 
 import { decodeObjString } from "searchkit/lib/src/core/history"
 
@@ -61,6 +61,12 @@ let searchCode =  (searchkit)=> {
           <SearchBox autofocus={true} searchOnChange={true} prefixQueryFields={["actors^1","type^2","languages","title^10"]}/>
         </TopBar>
 
+      <ViewSwitcherConfig
+        hitComponents = {[
+          {key:"grid", title:"Grid", itemComponent:MovieHitsGridItem, defaultOption:true},
+          {key:"list", title:"List", itemComponent:MovieHitsListItem}
+        ]}
+      />
       <LayoutBody>
 
         <SideBar>
@@ -102,10 +108,6 @@ let searchCode =  (searchkit)=> {
           <ViewSwitcherHits
               hitsPerPage={12} highlightFields={["title","plot"]}
               sourceFilter={["plot", "title", "poster", "imdbId", "imdbRating", "year"]}
-              hitComponents = {[
-                {key:"grid", title:"Grid", itemComponent:MovieHitsGridItem, defaultOption:true},
-                {key:"list", title:"List", itemComponent:MovieHitsListItem}
-              ]}
               scrollTo={false}
           />
           <NoHits suggestionsField={"title"}/>
@@ -147,10 +149,6 @@ export default class MainPage extends React.Component {
       self.searchkit.query = self.searchkit.buildQuery()
       // console.log(accessor.constructor)
       return add(accessor)
-    })
-    wrap(this.searchkit, "completeRegistration", function(completeRegistration){
-      completeRegistration()
-      this.emitter.trigger()
     })
   }
 
